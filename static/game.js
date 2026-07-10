@@ -1,4 +1,4 @@
-console.log("Dziesiątka game.js działa — wersja serwerowa v2.2 audio audience");
+console.log("Dziesiątka game.js działa — wersja serwerowa v2.3 punkty za rundę");
 
 const defaultState = {
     currentRound: "WARM UP",
@@ -249,6 +249,29 @@ function updateRoundButtons(state) {
     }
 }
 
+function getPointsForRound(roundName) {
+    const pointsByRound = {
+        "WARM UP": 1,
+        "SURVIVAL": 2,
+        "MANDATORY": 3,
+        "BATTLE": 5
+    };
+
+    return pointsByRound[roundName] || 1;
+}
+
+function formatPointsLabel(points) {
+    if (points === 1) {
+        return "punkt";
+    }
+
+    if (points >= 2 && points <= 4) {
+        return "punkty";
+    }
+
+    return "punktów";
+}
+
 function startPlayers() {
     const input = document.getElementById("playersInput");
     if (!input) return;
@@ -365,7 +388,7 @@ function markCorrect() {
     const player = state.players.find(p => p.id === state.currentPlayerId);
 
     if (player && player.active) {
-        player.points += 1;
+        player.points += getPointsForRound(state.currentRound);
     }
 
     saveState(state);
@@ -442,6 +465,12 @@ function renderAdmin(state) {
 
             adminPlayers.appendChild(btn);
         });
+    }
+
+    const correctButton = document.getElementById("correctButton");
+    if (correctButton) {
+        const points = getPointsForRound(state.currentRound);
+        correctButton.textContent = `Dobra odpowiedź +${points} ${formatPointsLabel(points)}`;
     }
 
     updateQuestionsInfo(state);
