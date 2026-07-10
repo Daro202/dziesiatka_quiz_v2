@@ -3,12 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <title>Dziesiątka - Ekran publiczności</title>
-   <link rel="stylesheet" href="static/style.css">
+    <link rel="stylesheet" href="static/style.css">
 </head>
 <body class="audience">
     <h1>DZIESIĄTKA</h1>
+
+    <button id="enableAudioButton" onclick="enableAudienceAudio()">
+        Włącz dźwięk na tym ekranie
+    </button>
+
+    <div id="audioStatus" class="info-box">
+        Dźwięk publiczności: wyłączony
+    </div>
+
     <div class="round-display">
-    Runda: <span id="audienceRound">---</span>
+        Runda: <span id="audienceRound">---</span>
     </div>
 
     <div class="current-player">
@@ -27,6 +36,6 @@
     <h2>Gracze</h2>
     <div id="audiencePlayers" class="scoreboard"></div>
 
-   <script src="static/game.js"></script>
+    <script src="static/game.js"></script>
 </body>
 </html>

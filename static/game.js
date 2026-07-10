@@ -1,4 +1,4 @@
-console.log("Dziesiątka game.js działa — wersja serwerowa v2.1");
+console.log("Dziesiątka game.js działa — wersja serwerowa v2.2 audio audience");
 
 const defaultState = {
     currentRound: "WARM UP",
@@ -9,10 +9,16 @@ const defaultState = {
     players: [],
     allQuestions: [],
     questionSet: "all",
-    usedQuestionIds: []
+    usedQuestionIds: [],
+    speechCommandId: null,
+    speechText: "",
+    speechType: ""
 };
 
 let currentState = structuredClone(defaultState);
+let audienceAudioEnabled = false;
+let lastHandledSpeechCommandId = null;
+let firstAudienceSyncDone = false;
 
 function isAdminPage() {
     return document.getElementById("adminPlayers") !== null;
@@ -30,6 +36,16 @@ function loadState() {
     return structuredClone(currentState);
 }
 
+function mergeWithDefaultState(state) {
+    const merged = structuredClone(defaultState);
+
+    if (state && typeof state === "object") {
+        Object.assign(merged, state);
+    }
+
+    return merged;
+}
+
 async function fetchStateFromServer() {
     try {
         const response = await fetch(apiPath("api/state"), {
@@ -44,8 +60,9 @@ async function fetchStateFromServer() {
             return;
         }
 
-        currentState = data.state;
+        currentState = mergeWithDefaultState(data.state);
         renderAll(currentState);
+        handleAudienceSpeechCommand(currentState);
 
     } catch (error) {
         console.error("Nie udało się pobrać stanu z serwera:", error);
@@ -53,7 +70,7 @@ async function fetchStateFromServer() {
 }
 
 async function saveState(state) {
-    currentState = structuredClone(state);
+    currentState = mergeWithDefaultState(state);
     renderAll(currentState);
 
     try {
@@ -73,7 +90,7 @@ async function saveState(state) {
             return;
         }
 
-        currentState = data.state;
+        currentState = mergeWithDefaultState(data.state);
         renderAll(currentState);
 
     } catch (error) {
@@ -389,7 +406,7 @@ async function resetGame() {
             return;
         }
 
-        currentState = data.state;
+        currentState = mergeWithDefaultState(data.state);
         renderAll(currentState);
 
     } catch (error) {
@@ -530,6 +547,51 @@ async function readCurrentQuestionElevenLabs() {
         return;
     }
 
+    state.speechCommandId = Date.now();
+    state.speechText = state.question;
+    state.speechType = "question";
+
+    await saveState(state);
+
+    alert("Wysłano pytanie do odczytania na ekranie publiczności.");
+}
+
+function enableAudienceAudio() {
+    audienceAudioEnabled = true;
+
+    const audioStatus = document.getElementById("audioStatus");
+    const button = document.getElementById("enableAudioButton");
+
+    if (audioStatus) {
+        audioStatus.textContent = "Dźwięk publiczności: włączony";
+    }
+
+    if (button) {
+        button.textContent = "Dźwięk włączony";
+        button.disabled = true;
+    }
+
+    try {
+        const utterance = new SpeechSynthesisUtterance("Dźwięk włączony.");
+        utterance.lang = "pl-PL";
+        utterance.volume = 0.01;
+        speechSynthesis.speak(utterance);
+    } catch (error) {
+        console.warn("Nie udało się wykonać testu audio:", error);
+    }
+}
+
+async function playElevenLabsOnAudience(text) {
+    if (!text) return;
+
+    if (!audienceAudioEnabled) {
+        const audioStatus = document.getElementById("audioStatus");
+        if (audioStatus) {
+            audioStatus.textContent = "Dźwięk publiczności: kliknij najpierw „Włącz dźwięk na tym ekranie”";
+        }
+        return;
+    }
+
     try {
         const response = await fetch(apiPath("api/elevenlabs-tts"), {
             method: "POST",
@@ -537,13 +599,13 @@ async function readCurrentQuestionElevenLabs() {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                text: state.question
+                text: text
             })
         });
 
         if (!response.ok) {
             const errorText = await response.text();
-            alert("Błąd ElevenLabs: " + errorText);
+            alert("Błąd ElevenLabs na ekranie publiczności: " + errorText);
             return;
         }
 
@@ -551,12 +613,35 @@ async function readCurrentQuestionElevenLabs() {
         const audioUrl = URL.createObjectURL(audioBlob);
         const audio = new Audio(audioUrl);
 
-        audio.play();
+        await audio.play();
 
     } catch (error) {
         console.error(error);
-        alert("Nie udało się odtworzyć głosu ElevenLabs.");
+        alert("Nie udało się odtworzyć głosu ElevenLabs na ekranie publiczności.");
     }
+}
+
+function handleAudienceSpeechCommand(state) {
+    if (!isAudiencePage()) {
+        return;
+    }
+
+    if (!state.speechCommandId) {
+        return;
+    }
+
+    if (!firstAudienceSyncDone) {
+        lastHandledSpeechCommandId = state.speechCommandId;
+        firstAudienceSyncDone = true;
+        return;
+    }
+
+    if (state.speechCommandId === lastHandledSpeechCommandId) {
+        return;
+    }
+
+    lastHandledSpeechCommandId = state.speechCommandId;
+    playElevenLabsOnAudience(state.speechText);
 }
 
 function startSync() {
