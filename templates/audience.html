@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>Dziesiątka - Ekran publiczności</title>
+   <link rel="stylesheet" href="static/style.css">
+</head>
+<body class="audience">
+    <h1>DZIESIĄTKA</h1>
+    <div class="round-display">
+    Runda: <span id="audienceRound">---</span>
+    </div>
+
+    <div class="current-player">
+        Aktualny gracz:
+        <span id="audienceCurrentPlayer">---</span>
+    </div>
+
+    <div class="game-card">
+        <div class="label">PYTANIE</div>
+        <div id="audienceQuestion" class="question">Czekamy na pytanie...</div>
+
+        <div class="label">ODPOWIEDŹ</div>
+        <div id="audienceAnswer" class="answer hidden">Odpowiedź ukryta</div>
+    </div>
+
+    <h2>Gracze</h2>
+    <div id="audiencePlayers" class="scoreboard"></div>
+
+   <script src="static/game.js"></script>
+</body>
+</html>

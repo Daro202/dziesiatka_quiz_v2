@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>Dziesiątka - Panel prowadzącego</title>
+   <link rel="stylesheet" href="static/style.css">
+</head>
+<body>
+    <h1>Dziesiątka - Panel prowadzącego</h1>
+
+    <section class="admin-layout">
+
+        <!-- LEWA KOLUMNA -->
+        <div class="admin-column">
+
+            <h2>Runda gry</h2>
+            <div class="round-buttons">
+                <button id="round-WARM-UP" onclick="setRound('WARM UP')">WARM UP</button>
+                <button id="round-SURVIVAL" onclick="setRound('SURVIVAL')">SURVIVAL</button>
+                <button id="round-MANDATORY" onclick="setRound('MANDATORY')">MANDATORY</button>
+                <button id="round-BATTLE" onclick="setRound('BATTLE')">BATTLE</button>
+            </div>
+
+            <h2>Pytania z Excela</h2>
+
+            <label>Zestaw pytań / zakład:</label>
+            <select id="questionSet">
+                <option value="all">Wszystkie</option>
+                <option value="lodz">Łódź</option>
+                <option value="tychy">Tychy</option>
+                <option value="mosina">Mosina</option>
+                <option value="ostroleka">Ostrołęka</option>
+            </select>
+
+            <button onclick="loadQuestionsFromExcel()">Załaduj pytania z Excela</button>
+            <button onclick="drawQuestionForCurrentRound()">Losuj i pokaż pytanie z aktualnej rundy</button>
+
+            <button onclick="readCurrentQuestion()">Przeczytaj pytanie — przeglądarka</button>
+            <button onclick="readCurrentQuestionElevenLabs()">Przeczytaj pytanie — ElevenLabs</button>
+
+            <button onclick="revealAnswer()">Pokaż odpowiedź do aktualnego pytania</button>
+            <button onclick="readCurrentAnswer()">Przeczytaj odpowiedź</button>
+            <button onclick="stopReading()">Zatrzymaj czytanie</button>
+
+            <div id="questionsInfo" class="info-box">Pytania niezaładowane.</div>
+
+            <div class="host-preview">
+                <h3>Podgląd dla prowadzącego</h3>
+
+                <div class="preview-label">Aktualne pytanie:</div>
+                <div id="hostPreviewQuestion" class="preview-question">Brak pytania.</div>
+
+                <div class="preview-label">Odpowiedź dla prowadzącego:</div>
+                <div id="hostPreviewAnswer" class="preview-answer">Brak odpowiedzi.</div>
+            </div>
+
+            <h2>Pytanie ręczne / testowe</h2>
+
+            <label>Pytanie:</label>
+            <textarea id="questionInput" rows="4">Czy Rzym jest stolicą Włoch?</textarea>
+
+            <label>Odpowiedź:</label>
+            <input id="answerInput" value="Tak">
+
+            <button onclick="showQuestion()">Pokaż pytanie ręczne</button>
+            <button onclick="readCurrentQuestion()">Przeczytaj pytanie</button>
+            <button onclick="revealAnswer()">Pokaż odpowiedź do aktualnego pytania</button>
+            <button onclick="readCurrentAnswer()">Przeczytaj odpowiedź</button>
+            <button onclick="stopReading()">Zatrzymaj czytanie</button>
+
+        </div>
+
+        <!-- PRAWA KOLUMNA -->
+        <div class="admin-column">
+
+            <h2>Gracze</h2>
+
+            <textarea id="playersInput" rows="6">Adam
+Kasia
+Marek
+Ania</textarea>
+
+            <button onclick="startPlayers()">Utwórz graczy</button>
+
+            <h2>Aktualny gracz</h2>
+            <button onclick="nextActivePlayer()">Następny aktywny gracz</button>
+
+            <div id="adminPlayers" class="players-list"></div>
+
+            <h2>Ocena odpowiedzi</h2>
+            <button onclick="markCorrect()">Dobra odpowiedź +1 punkt</button>
+            <button onclick="markWrong()">Zła odpowiedź -1 życie</button>
+
+            <h2>Gra</h2>
+            <button onclick="resetGame()">Reset gry</button>
+
+        </div>
+
+    </section>
+
+    <script src="static/game.js"></script>
+</body>
+</html>
