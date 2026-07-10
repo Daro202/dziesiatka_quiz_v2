@@ -1,4 +1,4 @@
-console.log("Dziesiątka game.js działa — wersja serwerowa v2");
+console.log("Dziesiątka game.js działa — wersja serwerowa v2.1");
 
 const defaultState = {
     currentRound: "WARM UP",
@@ -13,7 +13,6 @@ const defaultState = {
 };
 
 let currentState = structuredClone(defaultState);
-let lastLocalSaveAt = 0;
 
 function isAdminPage() {
     return document.getElementById("adminPlayers") !== null;
@@ -55,8 +54,6 @@ async function fetchStateFromServer() {
 
 async function saveState(state) {
     currentState = structuredClone(state);
-    lastLocalSaveAt = Date.now();
-
     renderAll(currentState);
 
     try {
@@ -562,22 +559,17 @@ async function readCurrentQuestionElevenLabs() {
     }
 }
 
-function startPolling() {
+function startSync() {
     fetchStateFromServer();
 
-    setInterval(() => {
-        const justSavedLocally = Date.now() - lastLocalSaveAt < 1000;
-
-        if (isAdminPage() && justSavedLocally) {
-            return;
-        }
-
-        fetchStateFromServer();
-
-    }, 1000);
+    if (isAudiencePage()) {
+        setInterval(() => {
+            fetchStateFromServer();
+        }, 1000);
+    }
 }
 
 document.addEventListener("DOMContentLoaded", () => {
     renderAll(currentState);
-    startPolling();
+    startSync();
 });
