@@ -19,8 +19,8 @@ def home():
     return """
     <h1>Dziesiątka</h1>
     <p>Teleturniej wiedzy</p>
-    <p><a href="/admin">Panel prowadzącego</a></p>
-    <p><a href="/audience">Ekran publiczności</a></p>
+    <p><a href="admin">Panel prowadzącego</a></p>
+    <p><a href="audience">Ekran publiczności</a></p>
     """
 
 
