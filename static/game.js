@@ -1,6 +1,4 @@
-console.log("Dziesiątka game.js działa");
-
-const channel = new BroadcastChannel("dziesiatka_channel");
+console.log("Dziesiątka game.js działa — wersja serwerowa v2");
 
 const defaultState = {
     currentRound: "WARM UP",
@@ -14,20 +12,76 @@ const defaultState = {
     usedQuestionIds: []
 };
 
-function saveState(state) {
-    localStorage.setItem("dziesiatka_state", JSON.stringify(state));
-    channel.postMessage(state);
-    renderAll(state);
+let currentState = structuredClone(defaultState);
+let lastLocalSaveAt = 0;
+
+function isAdminPage() {
+    return document.getElementById("adminPlayers") !== null;
+}
+
+function isAudiencePage() {
+    return document.getElementById("audienceQuestion") !== null;
+}
+
+function apiPath(path) {
+    return path;
 }
 
 function loadState() {
-    const raw = localStorage.getItem("dziesiatka_state");
-    if (!raw) return structuredClone(defaultState);
+    return structuredClone(currentState);
+}
+
+async function fetchStateFromServer() {
+    try {
+        const response = await fetch(apiPath("api/state"), {
+            method: "GET",
+            cache: "no-store"
+        });
+
+        const data = await response.json();
+
+        if (!data.ok) {
+            console.error("Błąd pobierania stanu:", data.error);
+            return;
+        }
+
+        currentState = data.state;
+        renderAll(currentState);
+
+    } catch (error) {
+        console.error("Nie udało się pobrać stanu z serwera:", error);
+    }
+}
+
+async function saveState(state) {
+    currentState = structuredClone(state);
+    lastLocalSaveAt = Date.now();
+
+    renderAll(currentState);
 
     try {
-        return JSON.parse(raw);
-    } catch {
-        return structuredClone(defaultState);
+        const response = await fetch(apiPath("api/state"), {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(currentState)
+        });
+
+        const data = await response.json();
+
+        if (!data.ok) {
+            console.error("Błąd zapisu stanu:", data.error);
+            alert("Nie udało się zapisać stanu gry na serwerze.");
+            return;
+        }
+
+        currentState = data.state;
+        renderAll(currentState);
+
+    } catch (error) {
+        console.error("Nie udało się zapisać stanu na serwerze:", error);
+        alert("Nie udało się połączyć z serwerem przy zapisie stanu gry.");
     }
 }
 
@@ -43,28 +97,38 @@ function setRound(roundName) {
 }
 
 async function loadQuestionsFromExcel() {
-    const response = await fetch("api/questions");
-    const data = await response.json();
+    try {
+        const response = await fetch(apiPath("api/questions"), {
+            method: "GET",
+            cache: "no-store"
+        });
 
-    if (!data.ok) {
-        alert("Błąd ładowania pytań: " + data.error);
-        return;
+        const data = await response.json();
+
+        if (!data.ok) {
+            alert("Błąd ładowania pytań: " + data.error);
+            return;
+        }
+
+        const questionSetSelect = document.getElementById("questionSet");
+        const selectedSet = questionSetSelect ? questionSetSelect.value : "all";
+
+        const state = loadState();
+        state.allQuestions = data.questions;
+        state.questionSet = selectedSet;
+        state.usedQuestionIds = [];
+        state.question = "";
+        state.answer = "";
+        state.answerVisible = false;
+
+        await saveState(state);
+
+        alert(`Załadowano pytań: ${data.count}`);
+
+    } catch (error) {
+        console.error(error);
+        alert("Nie udało się załadować pytań z Excela.");
     }
-
-    const questionSetSelect = document.getElementById("questionSet");
-    const selectedSet = questionSetSelect ? questionSetSelect.value : "all";
-
-    const state = loadState();
-    state.allQuestions = data.questions;
-    state.questionSet = selectedSet;
-    state.usedQuestionIds = [];
-    state.question = "";
-    state.answer = "";
-    state.answerVisible = false;
-
-    saveState(state);
-
-    alert(`Załadowano pytań: ${data.count}`);
 }
 
 function getFilteredQuestions(state) {
@@ -157,23 +221,17 @@ function updateRoundButtons(state) {
     roundButtons.forEach(button => {
         button.classList.remove("active-round");
 
-        button.style.background = "#f3f4f6";
-        button.style.color = "#111827";
-        button.style.fontWeight = "normal";
-        button.style.border = "none";
-        button.style.boxShadow = "none";
+        button.style.background = "";
+        button.style.color = "";
+        button.style.fontWeight = "";
+        button.style.border = "";
+        button.style.boxShadow = "";
     });
 
     const activeButton = document.getElementById(roundToId[state.currentRound]);
 
     if (activeButton) {
         activeButton.classList.add("active-round");
-
-        activeButton.style.background = "#22c55e";
-        activeButton.style.color = "#052e16";
-        activeButton.style.fontWeight = "bold";
-        activeButton.style.border = "3px solid #bbf7d0";
-        activeButton.style.boxShadow = "0 0 18px rgba(34, 197, 94, 0.75)";
     }
 }
 
@@ -315,8 +373,32 @@ function markWrong() {
     saveState(state);
 }
 
-function resetGame() {
-    saveState(structuredClone(defaultState));
+async function resetGame() {
+    const confirmed = confirm("Czy na pewno zresetować całą grę?");
+
+    if (!confirmed) {
+        return;
+    }
+
+    try {
+        const response = await fetch(apiPath("api/reset-state"), {
+            method: "POST"
+        });
+
+        const data = await response.json();
+
+        if (!data.ok) {
+            alert("Nie udało się zresetować gry.");
+            return;
+        }
+
+        currentState = data.state;
+        renderAll(currentState);
+
+    } catch (error) {
+        console.error(error);
+        alert("Nie udało się połączyć z serwerem przy resecie gry.");
+    }
 }
 
 function getCurrentPlayer(state) {
@@ -405,10 +487,6 @@ function renderAll(state) {
     renderAudience(state);
 }
 
-channel.onmessage = (event) => {
-    renderAll(event.data);
-};
-
 function readCurrentQuestion() {
     const state = loadState();
 
@@ -456,7 +534,7 @@ async function readCurrentQuestionElevenLabs() {
     }
 
     try {
-        const response = await fetch("api/elevenlabs-tts", {
+        const response = await fetch(apiPath("api/elevenlabs-tts"), {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
@@ -477,12 +555,29 @@ async function readCurrentQuestionElevenLabs() {
         const audio = new Audio(audioUrl);
 
         audio.play();
+
     } catch (error) {
         console.error(error);
         alert("Nie udało się odtworzyć głosu ElevenLabs.");
     }
 }
 
+function startPolling() {
+    fetchStateFromServer();
+
+    setInterval(() => {
+        const justSavedLocally = Date.now() - lastLocalSaveAt < 1000;
+
+        if (isAdminPage() && justSavedLocally) {
+            return;
+        }
+
+        fetchStateFromServer();
+
+    }, 1000);
+}
+
 document.addEventListener("DOMContentLoaded", () => {
-    renderAll(loadState());
+    renderAll(currentState);
+    startPolling();
 });
